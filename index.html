@@ -3,120 +3,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>油耗助手 | Trợ lý tiêu thụ xăng</title>
+    <title>車輛管家 Pro</title>
     <style>
-        body { font-family: "PingFang TC", sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
-        .container { max-width: 500px; margin: auto; }
-        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 15px; }
-        h2 { margin: 0 0 15px 0; color: #1a73e8; text-align: center; font-size: 1.2rem; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-        .stat-box { background: #e8f0fe; padding: 10px; border-radius: 10px; text-align: center; }
-        .stat-label { font-size: 11px; color: #5f6368; display: block; }
-        .stat-value { font-size: 16px; font-weight: bold; color: #1a73e8; display: block; margin-top: 5px; }
+        :root { --primary: #1a73e8; --success: #28a745; --danger: #dc3545; }
+        body { font-family: "PingFang TC", sans-serif; background: #f0f2f5; margin: 0; padding-bottom: 70px; }
+        .container { max-width: 500px; margin: auto; padding: 15px; }
+        .page { display: none; }
+        .page.active { display: block; }
+        
+        /* 卡片與標題 */
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 15px; }
+        h2 { margin: 0 0 15px 0; color: var(--primary); text-align: center; font-size: 1.1rem; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        
+        /* 底部導覽列 */
+        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000; }
+        .nav-item { flex: 1; padding: 12px; text-align: center; color: #5f6368; font-size: 12px; cursor: pointer; }
+        .nav-item.active { color: var(--primary); font-weight: bold; }
+        .nav-icon { font-size: 20px; display: block; margin-bottom: 2px; }
+
+        /* 警示區 */
+        .alert-box { background: #fff3cd; border-left: 5px solid #ffc107; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; color: #856404; }
+        .danger-box { background: #f8d7da; border-left: 5px solid var(--danger); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; color: #721c24; }
+
+        /* 表單與列表 */
         label { display: block; margin-top: 10px; color: #5f6368; font-size: 13px; font-weight: bold; }
-        .lang-hint { font-weight: normal; color: #999; font-size: 12px; }
         input { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #dadce0; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 15px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; margin-top: 15px; cursor: pointer; }
-        .record-item { background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 6px solid #1a73e8; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative; }
-        .record-info { display: flex; justify-content: space-between; font-size: 12px; color: #3c4043; }
-        .consumption { font-size: 20px; font-weight: bold; color: #d93025; margin: 5px 0; }
-        .del-btn { position: absolute; right: 10px; bottom: 10px; color: #999; font-size: 11px; cursor: pointer; border: 1px solid #eee; padding: 2px 5px; border-radius: 4px; }
+        button { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; margin-top: 15px; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat-box { background: #f8f9fa; padding: 12px; border-radius: 10px; text-align: center; border: 1px solid #eee; }
+        .record-item { background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 5px solid var(--success); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     </style>
 </head>
 <body>
+
 <div class="container">
-    <!-- 統計看板 -->
-    <div class="card">
-        <h2>📊 統計概況 / Thống kê</h2>
-        <div class="stats-grid">
-            <div class="stat-box">
-                <span class="stat-label">本週平均油耗<br><span class="lang-hint">TB trong tuần</span></span>
-                <span class="stat-value" id="weekAvg">-</span>
+    <!-- 分頁 1：統計看板 -->
+    <div id="page-stats" class="page active">
+        <div id="globalAlert"></div>
+        <div class="card">
+            <h2>📊 數據統計 / Thống kê</h2>
+            <div class="stats-grid">
+                <div class="stat-box"><span style="font-size:11px;color:#666">本月花費/Chi tháng</span><br><b id="monthCost">$ 0</b></div>
+                <div class="stat-box"><span style="font-size:11px;color:#666">平均油耗/Tiêu thụ</span><br><b id="avgCons">-</b></div>
+                <div class="stat-box"><span style="font-size:11px;color:#666">每公里花費/Tiền-km</span><br><b id="costPerKm">-</b></div>
+                <div class="stat-box"><span style="font-size:11px;color:#666">目前總里程/Tổng km</span><br><b id="totalKm">0</b></div>
             </div>
-            <div class="stat-box">
-                <span class="stat-label">本月平均油耗<br><span class="lang-hint">TB trong tháng</span></span>
-                <span class="stat-value" id="monthAvg">-</span>
-            </div>
+        </div>
+        <div class="card" style="background:#e7f3ff; border:1px dashed var(--primary);">
+            <h2 style="border:none; margin-bottom:5px;">🛡️ 保險摘要 / Bảo hiểm</h2>
+            <div id="insSummary" style="font-size:14px; color:#333; text-align:center;">尚未設定保險資料</div>
         </div>
     </div>
 
-    <!-- 輸入區域 -->
-    <div class="card">
-        <h2>⛽ 新增加油 / Thêm mới</h2>
-        <label>目前總里程 (km) / Tổng số km hiện tại</label>
-        <input type="number" id="mileage" inputmode="decimal" placeholder="VD: 10500">
-        <label>本次加油量 (L) / Lượng xăng đổ (L)</label>
-        <input type="number" id="liters" inputmode="decimal" placeholder="VD: 5.2">
-        <button onclick="addRecord()">儲存紀錄 / Lưu lại</button>
+    <!-- 分頁 2：加油紀錄 -->
+    <div id="page-gas" class="page">
+        <div class="card">
+            <h2>⛽ 新增加油 / Thêm mới</h2>
+            <input type="number" id="mileage" inputmode="decimal" placeholder="總里程 km / Tổng số km">
+            <input type="number" id="liters" inputmode="decimal" placeholder="公升 L / Số lít">
+            <input type="number" id="cost" inputmode="decimal" placeholder="金額 $ / Số tiền">
+            <button onclick="addRecord()">儲存紀錄 / Lưu lại</button>
+        </div>
+        <div id="history"></div>
     </div>
 
-    <div id="history"></div>
+    <!-- 分頁 3：車輛管理 -->
+    <div id="page-manage" class="page">
+        <div class="card">
+            <h2>🛡️ 保險設定 / Cài đặt BH</h2>
+            <label>保險到期日 / Ngày hết hạn</label>
+            <input type="date" id="insDate" onchange="saveIns()">
+            <label>保單號碼 / Số đơn BH</label>
+            <input type="text" id="insNo" placeholder="請輸入保單號碼" onchange="saveIns()">
+            <label>服務電話 / SĐT hỗ trợ</label>
+            <input type="tel" id="insTel" placeholder="例如: 0800..." onchange="saveIns()">
+        </div>
+        <div class="card">
+            <h2>⚙️ 其他設定 / Khác</h2>
+            <label>機油保養提醒 / Nhắc thay nhớt</label>
+            <p style="font-size:12px; color:#666;">每 1000km 自動提醒</p>
+            <button onclick="resetOil()" style="background:#6c757d;">重設機油里程 / Đặt lại thay nhớt</button>
+        </div>
+    </div>
+</div>
+
+<!-- 底部導覽列 -->
+<div class="nav-bar">
+    <div class="nav-item active" onclick="switchPage('stats', this)">
+        <span class="nav-icon">📊</span>統計 / Thống kê
+    </div>
+    <div class="nav-item" onclick="switchPage('gas', this)">
+        <span class="nav-icon">⛽</span>加油 / Đổ xăng
+    </div>
+    <div class="nav-item" onclick="switchPage('manage', this)">
+        <span class="nav-icon">⚙️</span>管理 / Quản lý
+    </div>
 </div>
 
 <script>
-    window.onload = render;
+    function switchPage(pageId, el) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('page-' + pageId).classList.add('active');
+        el.classList.add('active');
+    }
+
+    window.onload = function() { loadIns(); render(); };
+
+    function saveIns() {
+        const date = document.getElementById('insDate').value;
+        const no = document.getElementById('insNo').value;
+        const tel = document.getElementById('insTel').value;
+        localStorage.setItem('car_ins_final', JSON.stringify({ date, no, tel }));
+        renderIns();
+    }
+
+    function loadIns() {
+        const data = JSON.parse(localStorage.getItem('car_ins_final') || "{}");
+        if(data.date) document.getElementById('insDate').value = data.date;
+        if(data.no) document.getElementById('insNo').value = data.no;
+        if(data.tel) document.getElementById('insTel').value = data.tel;
+        renderIns();
+    }
+
+    function renderIns() {
+        const data = JSON.parse(localStorage.getItem('car_ins_final') || "{}");
+        const summary = document.getElementById('insSummary');
+        const alertDiv = document.getElementById('globalAlert');
+        if(!data.date) return;
+
+        const diff = Math.ceil((new Date(data.date) - new Date()) / (86400000));
+        summary.innerHTML = `號碼: ${data.no || '-'}<br>電話: ${data.tel || '-'}<br><b style="color:${diff<30?'red':'green'}">剩餘 ${diff} 天到期</b>`;
+        
+        alertDiv.innerHTML = diff <= 30 ? `<div class="danger-box">🚨 <b>保險即將到期 (${diff}天)</b><br>請記得續保！ / Sắp hết hạn BH!</div>` : "";
+    }
 
     function addRecord() {
         const m = parseFloat(document.getElementById('mileage').value);
         const l = parseFloat(document.getElementById('liters').value);
-        if (isNaN(m) || isNaN(l)) return alert("請輸入數值 / Vui lòng nhập số");
+        const c = parseFloat(document.getElementById('cost').value);
+        if (isNaN(m) || isNaN(l) || isNaN(c)) return alert("請輸入完整數值");
 
-        let data = JSON.parse(localStorage.getItem('gas_tracker_v3') || "[]");
-        let kmPerL = "首次紀錄 / Lần đầu";
-        
+        let data = JSON.parse(localStorage.getItem('gas_final_v1') || "[]");
+        let kmL = "首次", cpK = "-";
         if (data.length > 0) {
-            let lastM = data[0].m;
-            if (m <= lastM) return alert("里程需大於上次紀錄 / Số km phải lớn hơn lần trước: " + lastM);
-            kmPerL = ((m - lastM) / l).toFixed(2);
+            let diff = m - data[0].m;
+            if (diff <= 0) return alert("里程錯誤");
+            kmL = (diff / l).toFixed(2);
+            cpK = (c / diff).toFixed(2);
         }
-
-        const newEntry = {
-            m: m, l: l, kmPerL: kmPerL,
-            timestamp: Date.now(),
-            date: new Date().toLocaleDateString()
-        };
-
-        data.unshift(newEntry);
-        localStorage.setItem('gas_tracker_v3', JSON.stringify(data));
-        document.getElementById('liters').value = "";
+        data.unshift({ m, l, c, kmL, cpK, ts: Date.now(), d: new Date().toLocaleDateString() });
+        localStorage.setItem('gas_final_v1', JSON.stringify(data));
         render();
-    }
-
-    function calculateStats(data) {
-        const now = Date.now();
-        const oneDay = 24 * 60 * 60 * 1000;
-        const getAvg = (days) => {
-            const filtered = data.filter(item => (now - item.timestamp) <= (days * oneDay));
-            const validConsumptions = filtered.filter(i => i.kmPerL !== "首次紀錄 / Lần đầu").map(i => parseFloat(i.kmPerL));
-            if (validConsumptions.length === 0) return "-";
-            const sum = validConsumptions.reduce((a, b) => a + b, 0);
-            return (sum / validConsumptions.length).toFixed(2) + " km/L";
-        };
-        document.getElementById('weekAvg').innerText = getAvg(7);
-        document.getElementById('monthAvg').innerText = getAvg(30);
+        switchPage('stats', document.querySelectorAll('.nav-item')[0]);
     }
 
     function render() {
-        let data = JSON.parse(localStorage.getItem('gas_tracker_v3') || "[]");
-        calculateStats(data);
-        const historyDiv = document.getElementById('history');
-        historyDiv.innerHTML = data.map((item, index) => `
+        let data = JSON.parse(localStorage.getItem('gas_final_v1') || "[]");
+        let lastOil = parseFloat(localStorage.getItem('last_oil_final') || "0");
+        let mCost = 0;
+        const now = Date.now();
+
+        if(data.length > 0) {
+            document.getElementById('totalKm').innerText = data[0].m + " km";
+            document.getElementById('avgCons').innerText = data[0].kmL + " km/L";
+            document.getElementById('costPerKm').innerText = "$ " + data[0].cpK + "/km";
+            data.forEach(i => { if(now - i.ts < 2592000000) mCost += i.c; });
+            document.getElementById('monthCost').innerText = "$ " + mCost;
+            
+            if(data[0].m - lastOil >= 1000) {
+                document.getElementById('globalAlert').innerHTML += `<div class="alert-box">⚠️ <b>該換機油囉！</b><br>距離上次已超過 1000km</div>`;
+            }
+        }
+
+        document.getElementById('history').innerHTML = data.map((i, idx) => `
             <div class="record-item">
-                <div class="record-info"><span>📅 ${item.date}</span><span>里程/km: ${item.m}</span></div>
-                <div class="record-info"><span>加油/Lít: ${item.l}</span></div>
-                <div class="consumption">${item.kmPerL}<span style="font-size:12px">${item.kmPerL.includes("首次") ? "" : " km/L"}</span></div>
-                <div class="del-btn" onclick="deleteItem(${index})">刪除 / Xóa</div>
+                <div style="display:flex; justify-content:space-between; font-size:12px;"><b>📅 ${i.d}</b> <span>${i.m} km</span></div>
+                <div style="font-size:18px; margin:5px 0;"><b>${i.kmL}</b> <small>km/L</small> <span style="color:green; float:right;">$${i.c}</span></div>
+                <div style="font-size:11px; color:#999;" onclick="deleteItem(${idx})"><u>刪除紀錄 / Xóa</u></div>
             </div>
         `).join('');
     }
 
-    function deleteItem(index) {
-        if(confirm("確定刪除？ / Bạn có chắc chắn muốn xóa?")) {
-            let data = JSON.parse(localStorage.getItem('gas_tracker_v3'));
-            data.splice(index, 1);
-            localStorage.setItem('gas_tracker_v3', JSON.stringify(data));
-            render();
-        }
+    function resetOil() {
+        let data = JSON.parse(localStorage.getItem('gas_final_v1') || "[]");
+        localStorage.setItem('last_oil_final', data.length > 0 ? data[0].m : 0);
+        alert("重設成功！");
+        render();
+    }
+
+    function deleteItem(idx) {
+        if(!confirm("確定刪除？")) return;
+        let data = JSON.parse(localStorage.getItem('gas_final_v1'));
+        data.splice(idx, 1);
+        localStorage.setItem('gas_final_v1', JSON.stringify(data));
+        render();
     }
 </script>
 </body>
